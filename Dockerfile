@@ -11,6 +11,8 @@ RUN npm install --ignore-scripts
 # Copy application code
 COPY . .
 
+EXPOSE 1122
+
 # Build the application
 RUN npm run build
 
