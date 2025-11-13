@@ -35,21 +35,57 @@ const CHART_TYPE_MAP = {
 
 /**
  * Call a tool to generate a chart based on the provided name and arguments.
- * @param tool The name of the tool to call, e.g., "generate_area_chart".
+ * @param tool The name of the tool to call, e.g., "generate_area_chart" or "generate_chart".
  * @param args The arguments for the tool, which should match the expected schema for the chart type.
  * @returns
  */
 export async function callTool(tool: string, args: object = {}) {
+  // Handle unified chart tool
+  if (tool === "generate_chart") {
+    const { type, ...restArgs } = args as { type?: string; [key: string]: unknown };
+
+    if (!type) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "The 'type' parameter is required for generate_chart tool."
+      );
+    }
+
+    // Validate that the type is supported
+    if (!Object.values(CHART_TYPE_MAP).includes(type as any)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Unsupported chart type: ${type}. Supported types: ${Object.values(CHART_TYPE_MAP).join(", ")}`
+      );
+    }
+
+    // Use the type as chartType and continue with normal processing
+    const chartType = type;
+    return await generateChart(chartType, restArgs, tool);
+  }
+
+  // Handle individual chart tools
   const chartType = CHART_TYPE_MAP[tool as keyof typeof CHART_TYPE_MAP];
 
   if (!chartType) {
     throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${tool}.`);
   }
 
+  return await generateChart(chartType, args, tool);
+}
+
+/**
+ * Generate a chart with the given type and arguments.
+ * @param chartType The chart type (e.g., "line", "bar", "pie")
+ * @param args The chart configuration arguments
+ * @param originalTool The original tool name (for map chart detection)
+ * @returns
+ */
+async function generateChart(chartType: string, args: object, originalTool: string) {
   try {
     // Validate input using Zod before sending to API.
     // Select the appropriate schema based on the chart type.
-    const schema = Charts[chartType].schema;
+    const schema = (Charts as Record<string, any>)[chartType]?.schema;
 
     if (schema) {
       // Use safeParse instead of parse and try-catch.
@@ -66,11 +102,19 @@ export async function callTool(tool: string, args: object = {}) {
       "generate_district_map",
       "generate_path_map",
       "generate_pin_map",
-    ].includes(tool);
+    ].includes(originalTool) || [
+      "district-map",
+      "path-map",
+      "pin-map",
+    ].includes(chartType);
 
     if (isMapChartTool) {
       // For map charts, we use the generateMap function, and return the mcp result.
-      const { metadata, ...result } = await generateMap(tool, args);
+      // Convert chart type to tool name for map generation
+      const mapToolName = originalTool === "generate_chart"
+        ? `generate_${chartType.replace("-", "_")}`
+        : originalTool;
+      const { metadata, ...result } = await generateMap(mapToolName, args);
       return result;
     }
 
