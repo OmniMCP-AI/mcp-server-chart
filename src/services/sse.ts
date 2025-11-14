@@ -19,21 +19,23 @@ export const startSSEMcpServer = async (
       transport.onclose = () => delete transports[transport.sessionId];
       await server.connect(transport);
     } catch (error) {
-      if (!res.headersSent) res.status(500).send('Error establishing SSE stream');
+      // According to MCP protocol, errors should be returned with HTTP 200 status
+      if (!res.headersSent) res.status(200).send('Error establishing SSE stream');
     }
   });
 
   app.post('/messages', async (req, res) => {
     const sessionId = req.query.sessionId as string;
     if (!sessionId) return res.status(400).send('Missing sessionId parameter');
-    
+
     const transport = transports[sessionId];
     if (!transport) return res.status(404).send('Session not found');
-    
+
     try {
       await transport.handlePostMessage(req, res, req.body);
     } catch (error) {
-      if (!res.headersSent) res.status(500).send('Error handling request');
+      // According to MCP protocol, errors should be returned with HTTP 200 status
+      if (!res.headersSent) res.status(200).send('Error handling request');
     }
   });
 

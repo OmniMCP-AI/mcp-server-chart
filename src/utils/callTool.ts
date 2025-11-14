@@ -1,4 +1,3 @@
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import * as Charts from "../charts";
 import { generateChartUrl, generateMap } from "./generate";
@@ -45,18 +44,30 @@ export async function callTool(tool: string, args: object = {}) {
     const { type, ...restArgs } = args as { type?: string; [key: string]: unknown };
 
     if (!type) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "The 'type' parameter is required for generate_chart tool."
-      );
+      // Return error according to MCP protocol with isError: true
+      return {
+        content: [
+          {
+            type: "text",
+            text: "The 'type' parameter is required for generate_chart tool.",
+          },
+        ],
+        isError: true,
+      };
     }
 
     // Validate that the type is supported
     if (!Object.values(CHART_TYPE_MAP).includes(type as any)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Unsupported chart type: ${type}. Supported types: ${Object.values(CHART_TYPE_MAP).join(", ")}`
-      );
+      // Return error according to MCP protocol with isError: true
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Unsupported chart type: ${type}. Supported types: ${Object.values(CHART_TYPE_MAP).join(", ")}`,
+          },
+        ],
+        isError: true,
+      };
     }
 
     // Use the type as chartType and continue with normal processing
@@ -68,7 +79,16 @@ export async function callTool(tool: string, args: object = {}) {
   const chartType = CHART_TYPE_MAP[tool as keyof typeof CHART_TYPE_MAP];
 
   if (!chartType) {
-    throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${tool}.`);
+    // Return error according to MCP protocol with isError: true
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Unknown tool: ${tool}.`,
+        },
+      ],
+      isError: true,
+    };
   }
 
   return await generateChart(chartType, args, tool);
@@ -91,10 +111,16 @@ async function generateChart(chartType: string, args: object, originalTool: stri
       // Use safeParse instead of parse and try-catch.
       const result = z.object(schema).safeParse(args);
       if (!result.success) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Invalid parameters: ${result.error.message}`,
-        );
+        // Return error according to MCP protocol with isError: true
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Invalid parameters: ${result.error.message}`,
+            },
+          ],
+          isError: true,
+        };
       }
     }
 
@@ -135,12 +161,23 @@ async function generateChart(chartType: string, args: object, originalTool: stri
     };
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   } catch (error: any) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof ValidateError)
-      throw new McpError(ErrorCode.InvalidParams, error.message);
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to generate chart: ${error?.message || "Unknown error."}`,
-    );
+    // Return error according to MCP protocol with isError: true
+    let errorMessage = "Unknown error.";
+
+    if (error instanceof ValidateError) {
+      errorMessage = error.message;
+    } else if (error?.message) {
+      errorMessage = `Failed to generate chart: ${error.message}`;
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: errorMessage,
+        },
+      ],
+      isError: true,
+    };
   }
 }

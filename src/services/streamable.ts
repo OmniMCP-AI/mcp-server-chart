@@ -23,8 +23,9 @@ export const startHTTPStreamableServer = async (
         server.close();
       });
     } catch (error) {
+      // According to MCP protocol, errors should be returned with HTTP 200 status
       if (!res.headersSent) {
-        res.status(500).json({
+        res.status(200).json({
           jsonrpc: '2.0',
           error: { code: -32603, message: 'Internal server error' },
           id: null,

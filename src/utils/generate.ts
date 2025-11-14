@@ -14,28 +14,36 @@ export async function generateChartUrl(
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   options: Record<string, any>,
 ): Promise<string> {
-  const url = getVisRequestServer();
+  try {
+    const url = getVisRequestServer();
 
-  const response = await axios.post(
-    url,
-    {
-      type,
-      ...options,
-      source: "mcp-server-chart",
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
+    const response = await axios.post(
+      url,
+      {
+        type,
+        ...options,
+        source: "mcp-server-chart",
       },
-    },
-  );
-  const { success, errorMessage, resultObj } = response.data;
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    const { success, errorMessage, resultObj } = response.data;
 
-  if (!success) {
-    throw new Error(errorMessage);
+    if (!success) {
+      throw new Error(errorMessage || "Chart generation failed");
+    }
+
+    return resultObj;
+  } catch (error: any) {
+    // Re-throw with more context if it's a network error
+    if (error.message && !error.response) {
+      throw new Error(`Failed to generate chart URL: ${error.message}`);
+    }
+    throw error;
   }
-
-  return resultObj;
 }
 
 type ResponseResult = {
@@ -57,26 +65,34 @@ export async function generateMap(
   tool: string,
   input: unknown,
 ): Promise<ResponseResult> {
-  const url = getVisRequestServer();
+  try {
+    const url = getVisRequestServer();
 
-  const response = await axios.post(
-    url,
-    {
-      serviceId: getServiceIdentifier(),
-      tool,
-      input,
-      source: "mcp-server-chart",
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
+    const response = await axios.post(
+      url,
+      {
+        serviceId: getServiceIdentifier(),
+        tool,
+        input,
+        source: "mcp-server-chart",
       },
-    },
-  );
-  const { success, errorMessage, resultObj } = response.data;
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    const { success, errorMessage, resultObj } = response.data;
 
-  if (!success) {
-    throw new Error(errorMessage);
+    if (!success) {
+      throw new Error(errorMessage || "Map generation failed");
+    }
+    return resultObj;
+  } catch (error: any) {
+    // Re-throw with more context if it's a network error
+    if (error.message && !error.response) {
+      throw new Error(`Failed to generate map: ${error.message}`);
+    }
+    throw error;
   }
-  return resultObj;
 }
