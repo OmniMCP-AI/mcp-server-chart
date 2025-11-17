@@ -14,16 +14,14 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (remove --ignore-scripts to allow canvas to build)
-RUN npm install
-
-# Copy application code
+# Copy application code (needed for husky in prepare script)
 COPY . .
 
-EXPOSE 1122
+# Install dependencies and build
+# Set CI=true to skip husky install in Docker
+RUN CI=true npm install && npm run build
 
-# Build the application
-RUN npm run build
+EXPOSE 1122
 
 # Command will be provided by smithery.yaml
 CMD ["node", "build/index.js", "-t", "streamable"]
