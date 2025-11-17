@@ -1,6 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
 import { getServiceIdentifier, getVisRequestServer } from "./env";
+import { renderCandlestickChart } from "./renderChart";
+import { uploadImage } from "./uploadImage";
 
 /**
  * Generate a chart URL using the provided configuration.
@@ -94,5 +96,76 @@ export async function generateMap(
       throw new Error(`Failed to generate map: ${error.message}`);
     }
     throw error;
+  }
+}
+
+/**
+ * Generate a stock chart (candlestick) using built-in SSR or custom service
+ * @param options Chart options
+ * @returns {Promise<string>} The generated chart URL after uploading to file service.
+ * @throws {Error} If the chart generation fails.
+ */
+export async function generateStockChart(
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  options: Record<string, any>,
+): Promise<string> {
+  // Try local SSR rendering first (no external dependencies!)
+  try {
+    const base64Image = await renderCandlestickChart(options);
+
+    // Upload image to file service and get public URL
+    const imageUrl = await uploadImage(base64Image, "candlestick-chart.png");
+    return imageUrl;
+  } catch (localError: any) {
+    // If local rendering fails, try external service as fallback
+    const customServiceUrl = process.env.STOCK_CHART_SERVICE;
+
+    if (!customServiceUrl) {
+      // If no fallback service, provide helpful error message
+      throw new Error(
+        `Local stock chart rendering failed: ${localError.message}\n\n` +
+          `To use an external rendering service, configure STOCK_CHART_SERVICE environment variable.\n` +
+          `Example: STOCK_CHART_SERVICE=http://localhost:3001/api/candlestick`,
+      );
+    }
+
+    // Try external service
+    try {
+      const { data, width = 800, height = 600, title = "", style = {}, theme = "default" } = options;
+
+      // Use custom rendering service
+      const response = await axios.post(
+        customServiceUrl,
+        {
+          data,
+          width,
+          height,
+          title,
+          style,
+          theme,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          responseType: "arraybuffer", // Get binary data
+          timeout: 30000,
+        },
+      );
+
+      // Convert to base64
+      const base64Image = Buffer.from(response.data, "binary").toString("base64");
+      const base64DataUri = `data:image/png;base64,${base64Image}`;
+
+      // Upload image to file service and get public URL
+      const imageUrl = await uploadImage(base64DataUri, "candlestick-chart.png");
+      return imageUrl;
+    } catch (error: any) {
+      // Re-throw with more context if it's a network error
+      if (error.message && !error.response) {
+        throw new Error(`Failed to generate stock chart: ${error.message}`);
+      }
+      throw error;
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as Charts from "../charts";
-import { generateChartUrl, generateMap } from "./generate";
+import { generateChartUrl, generateMap, generateStockChart } from "./generate";
 import { ValidateError } from "./validator";
 
 // Chart type mapping
@@ -8,6 +8,7 @@ const CHART_TYPE_MAP = {
   generate_area_chart: "area",
   generate_bar_chart: "bar",
   generate_boxplot_chart: "boxplot",
+  generate_candlestick_chart: "candlestick",
   generate_column_chart: "column",
   generate_district_map: "district-map",
   generate_dual_axes_chart: "dual-axes",
@@ -122,6 +123,27 @@ async function generateChart(chartType: string, args: object, originalTool: stri
           isError: true,
         };
       }
+    }
+
+    // Check if this is a stock chart (candlestick)
+    const isStockChart = chartType === "candlestick" ||
+                         originalTool === "generate_candlestick_chart";
+
+    if (isStockChart) {
+      // For stock charts, use local SSR rendering and upload to file service
+      const url = await generateStockChart(args);
+      return {
+        content: [
+          {
+            type: "text",
+            text: url,
+          },
+        ],
+        _meta: {
+          description: "Stock chart (candlestick) rendered locally using ECharts and uploaded to file service",
+          spec: { type: chartType, ...args },
+        },
+      };
     }
 
     const isMapChartTool = [

@@ -4,6 +4,7 @@
 export { area } from "./area";
 export { bar } from "./bar";
 export { boxplot } from "./boxplot";
+export { candlestick } from "./candlestick";
 export { column } from "./column";
 export { districtMap as "district-map" } from "./district-map";
 export { dualAxes as "dual-axes" } from "./dual-axes";

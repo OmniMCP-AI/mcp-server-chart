@@ -30,8 +30,17 @@
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "files": ["build"],
-  "keywords": ["antv", "mcp", "data-visualization", "chart", "graph", "map"],
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "antv",
+    "mcp",
+    "data-visualization",
+    "chart",
+    "graph",
+    "map"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/antvis/mcp-server-chart"
@@ -44,8 +53,11 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.4",
     "axios": "^1.11.0",
+    "canvas": "^3.2.0",
     "cors": "^2.8.5",
+    "echarts": "^6.0.0",
     "express": "^5.1.0",
+    "form-data": "^4.0.5",
     "zod": "^3.25.16",
     "zod-to-json-schema": "^3.24.5"
   },
