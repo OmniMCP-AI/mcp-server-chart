@@ -4,7 +4,7 @@
 import axios from "axios";
 import FormData from "form-data";
 
-const UPLOAD_API = process.env.UPLOAD_API;
+const UPLOAD_API = process.env.UPLOAD_API || "http://localhost:3000/api/v1/file/upload";
 
 /**
  * Upload base64 image to file service
