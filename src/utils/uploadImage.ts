@@ -4,7 +4,7 @@
 import axios from "axios";
 import FormData from "form-data";
 
-const UPLOAD_API = process.env.UPLOAD_API || 'https://data.fastest.ai/api/v1/file/upload';
+const UPLOAD_API = process.env.UPLOAD_API;
 
 /**
  * Upload base64 image to file service
