@@ -2,14 +2,16 @@ FROM node:lts-alpine
 
 WORKDIR /app
 
-# Install system dependencies required for canvas
+# Install system dependencies required for canvas and Chinese font support
 RUN apk add --no-cache \
     build-base \
     cairo-dev \
     jpeg-dev \
     pango-dev \
     giflib-dev \
-    pixman-dev
+    pixman-dev \
+    fontconfig \
+    font-noto-cjk
 
 # Copy package files
 COPY package*.json ./

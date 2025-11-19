@@ -3,7 +3,7 @@
  * No external HTTP calls needed - renders directly in Node.js
  */
 
-import { createCanvas } from "canvas";
+import { createCanvas, registerFont } from "canvas";
 import * as echarts from "echarts/core";
 import { CandlestickChart } from "echarts/charts";
 import {
@@ -12,9 +12,50 @@ import {
   GridComponent,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
+import * as fs from "fs";
+import * as path from "path";
 
 // Register required components
 echarts.use([CandlestickChart, TitleComponent, TooltipComponent, GridComponent, CanvasRenderer]);
+
+// Register custom fonts from fonts directory
+function registerCustomFonts() {
+  const fontsDir = path.join(process.cwd(), "fonts");
+
+  if (!fs.existsSync(fontsDir)) {
+    console.warn(`Fonts directory not found: ${fontsDir}`);
+    return false;
+  }
+
+  try {
+    const fontFiles = fs.readdirSync(fontsDir);
+    let registered = false;
+
+    for (const file of fontFiles) {
+      const fontPath = path.join(fontsDir, file);
+      const ext = path.extname(file).toLowerCase();
+
+      // Support common font formats
+      if (['.ttf', '.ttc', '.otf'].includes(ext)) {
+        try {
+          registerFont(fontPath, { family: "CustomFont" });
+          console.log(`Registered font: ${file}`);
+          registered = true;
+        } catch (error) {
+          console.warn(`Failed to register font ${file}:`, error);
+        }
+      }
+    }
+
+    return registered;
+  } catch (error) {
+    console.warn(`Error reading fonts directory:`, error);
+    return false;
+  }
+}
+
+// Register fonts on module load
+registerCustomFonts();
 
 /**
  * Render a candlestick chart using ECharts and node-canvas
@@ -41,6 +82,7 @@ export async function renderCandlestickChart(
       left: "center",
       textStyle: {
         color: theme === "dark" ? "#ffffff" : "#333333",
+        fontFamily: "CustomFont, Arial, sans-serif",
       },
     },
     tooltip: {
@@ -48,18 +90,23 @@ export async function renderCandlestickChart(
       axisPointer: {
         type: "cross",
       },
+      textStyle: {
+        fontFamily: "CustomFont, Arial, sans-serif",
+      },
     },
     xAxis: {
       type: "category",
       data: data.map((d: any) => d.date),
       axisLabel: {
         color: theme === "dark" ? "#ffffff" : "#333333",
+        fontFamily: "CustomFont, Arial, sans-serif",
       },
     },
     yAxis: {
       scale: true,
       axisLabel: {
         color: theme === "dark" ? "#ffffff" : "#333333",
+        fontFamily: "CustomFont, Arial, sans-serif",
       },
     },
     grid: {
